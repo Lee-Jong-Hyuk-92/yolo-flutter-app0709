@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
-// ✅ 현재 프로젝트 경로에 맞게 임포트
-import '/presentation/viewmodel/auth_viewmodel.dart'; // ✅ DAuthViewModel 대신 AuthViewModel 임포트
-import '/presentation/viewmodel/doctor/d_patient_viewmodel.dart'; // DPatientViewModel 임포트
-import '/presentation/viewmodel/doctor/d_consultation_viewmodel.dart'; // DConsultationViewModel 임포트
-import '/presentation/model/doctor/d_patient.dart'; // DPatient 모델 임포트
-import '/presentation/model/doctor/d_consultation_record.dart'; // DConsultationRecord 모델 임포트
-
+import '/presentation/viewmodel/auth_viewmodel.dart';
+import '/presentation/viewmodel/doctor/d_patient_viewmodel.dart';
+import '/presentation/model/doctor/d_patient.dart';
+import '/presentation/model/doctor/d_consultation_record.dart';
 
 class PatientDetailScreen extends StatefulWidget {
   final int patientId;
@@ -21,7 +18,6 @@ class PatientDetailScreen extends StatefulWidget {
 
 class _PatientDetailScreenState extends State<PatientDetailScreen> {
   Patient? _patient;
-  List<ConsultationRecord> _consultations = [];
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -29,40 +25,24 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchPatientAndConsultations();
+      _fetchPatient();
     });
   }
 
-  Future<void> _fetchPatientAndConsultations() async {
+  Future<void> _fetchPatient() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    // ✅ ViewModel 타입을 AuthViewModel로 변경
     final patientViewModel = context.read<DPatientViewModel>();
-    final consultationViewModel = context.read<DConsultationViewModel>();
-    final authViewModel = context.read<AuthViewModel>(); // AuthViewModel 사용
 
     try {
-      // 1. 환자 정보 가져오기
       await patientViewModel.fetchPatient(widget.patientId);
       if (patientViewModel.errorMessage != null) {
         throw Exception(patientViewModel.errorMessage);
       }
       _patient = patientViewModel.currentPatient;
-
-      // 2. 해당 환자의 진료 기록 가져오기
-      if (authViewModel.currentUser != null && authViewModel.currentUser!.isDoctor && authViewModel.currentUser!.id != null) {
-        await consultationViewModel.fetchConsultationRecordsByPatient(
-            widget.patientId, authViewModel.currentUser!.id!);
-        if (consultationViewModel.errorMessage != null) {
-          throw Exception(consultationViewModel.errorMessage);
-        }
-        _consultations = consultationViewModel.patientConsultations;
-      } else {
-        throw Exception('의사 계정으로 로그인해야 환자 진료 기록을 볼 수 있습니다.');
-      }
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -122,7 +102,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 환자 기본 정보 섹션
+            // 환자 기본 정보
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -144,30 +124,12 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('진료 기록', style: Theme.of(context).textTheme.headlineSmall),
+            Text('진단 결과 예시 (MongoDB)', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 10),
-            _consultations.isEmpty
-                ? const Center(child: Text('등록된 진료 기록이 없습니다.'))
-                : ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _consultations.length,
-                    itemBuilder: (context, index) {
-                      final record = _consultations[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        child: ListTile(
-                          title: Text('${record.consultationDate} ${record.consultationTime}'),
-                          subtitle: Text('주소: ${record.chiefComplaint ?? '없음'}'),
-                          onTap: () {
-                            context.go('/telemedicine_detail/${record.id}');
-                          },
-                        ),
-                      );
-                    },
-                  ),
+            // 여기는 향후 진단 결과 화면으로 이동하도록 안내
+            const Center(
+              child: Text('이 환자의 진단 기록은 진단 결과 탭에서 확인할 수 있습니다.'),
+            ),
           ],
         ),
       ),

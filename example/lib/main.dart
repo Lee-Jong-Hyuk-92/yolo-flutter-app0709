@@ -4,12 +4,12 @@ import 'package:provider/provider.dart';
 import 'presentation/viewmodel/userinfo_viewmodel.dart';
 import 'services/router.dart';
 import '/presentation/screens/doctor/d_home_screen.dart'; // d_home_screen.dart 임포트
+import '/presentation/viewmodel/doctor/d_consultation_record_viewmodel.dart'; // ✅ 추가
 
 // ✅ AuthViewModel 임포트
 import '/presentation/viewmodel/auth_viewmodel.dart';
 // ✅ doctor 폴더 내의 뷰모델 임포트 (AuthViewModel은 이제 일반 폴더에서 가져오므로 제거)
 import '/presentation/viewmodel/doctor/d_patient_viewmodel.dart';
-import '/presentation/viewmodel/doctor/d_consultation_viewmodel.dart';
 
 
 void main() {
@@ -32,9 +32,8 @@ void main() {
         ChangeNotifierProvider(
           create: (_) => DPatientViewModel(baseUrl: globalBaseUrl),
         ),
-        // ✅ DConsultationViewModel Provider 등록
         ChangeNotifierProvider(
-          create: (_) => DConsultationViewModel(baseUrl: globalBaseUrl), // Base URL 전달
+          create: (_) => ConsultationRecordViewModel(baseUrl: globalBaseUrl),
         ),
       ],
       child: YOLOExampleApp(baseUrl: globalBaseUrl),

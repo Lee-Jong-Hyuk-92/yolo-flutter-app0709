@@ -1,71 +1,75 @@
-import 'd_patient.dart'; // Patient 모델 임포트
-
 class ConsultationRecord {
-  final int id;
-  final int patientId;
-  final int doctorId;
-  final int? appointmentId;
-  final String consultationDate;
-  final String consultationTime;
-  final String? chiefComplaint;
-  final String? diagnosis;
-  final String? treatmentPlan;
-  final String? maskingResult;
-  final String? aiResult;
-  final String? doctorModifications;
-  final Patient? patientInfo; // 진료 기록 조회 시 함께 반환될 환자 정보
+  final String id; // MongoDB ObjectId → String
+  final String userId;
+  final String originalImageFilename;
+  final String originalImagePath;
+  final String processedImagePath;
+  final DateTime timestamp;
+
+  final double? confidence;
+  final List<List<int>>? lesionPoints;
 
   ConsultationRecord({
     required this.id,
-    required this.patientId,
-    required this.doctorId,
-    this.appointmentId,
-    required this.consultationDate,
-    required this.consultationTime,
-    this.chiefComplaint,
-    this.diagnosis,
-    this.treatmentPlan,
-    this.maskingResult,
-    this.aiResult,
-    this.doctorModifications,
-    this.patientInfo,
+    required this.userId,
+    required this.originalImageFilename,
+    required this.originalImagePath,
+    required this.processedImagePath,
+    required this.timestamp,
+    this.confidence,
+    this.lesionPoints,
   });
 
+  // ✅ 날짜 getter
+  String get consultationDate {
+    return "${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')}";
+  }
+
+  // ✅ 시간 getter
+  String get consultationTime {
+    return "${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}";
+  }
+
+  // ✅ AI 결과 getter
+  String? get aiResult {
+    if (confidence == null) return null;
+    return "${(confidence! * 100).toStringAsFixed(1)}% 확신도";
+  }
+
+  // ✅ 증상 getter (임시)
+  String? get chiefComplaint {
+    return originalImageFilename; // 실제 증상이 없다면 파일 이름을 예시로 대체
+  }
+
   factory ConsultationRecord.fromJson(Map<String, dynamic> json) {
+    final inference = json['inference_result'] ?? {};
+
     return ConsultationRecord(
-      id: json['id'] as int,
-      patientId: json['patientId'] as int,
-      doctorId: json['doctorId'] as int,
-      appointmentId: json['appointmentId'] as int?,
-      consultationDate: json['consultationDate'] as String,
-      consultationTime: json['consultationTime'] as String,
-      chiefComplaint: json['chiefComplaint'] as String?,
-      diagnosis: json['diagnosis'] as String?,
-      treatmentPlan: json['treatmentPlan'] as String?,
-      maskingResult: json['maskingResult'] as String?,
-      aiResult: json['aiResult'] as String?,
-      doctorModifications: json['doctorModifications'] as String?,
-      patientInfo: json['patientInfo'] != null
-          ? Patient.fromJson(json['patientInfo'] as Map<String, dynamic>)
-          : null,
+      id: json['_id'] ?? '',
+      userId: json['user_id'] ?? '',
+      originalImageFilename: json['original_image_filename'] ?? '',
+      originalImagePath: json['original_image_path'] ?? '',
+      processedImagePath: json['processed_image_path'] ?? '',
+      timestamp: DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
+      confidence: (inference['backend_model_confidence'] as num?)?.toDouble(),
+      lesionPoints: (inference['lesion_points'] as List?)
+          ?.map<List<int>>((pt) => List<int>.from(pt))
+          .toList(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'patientId': patientId,
-      'doctorId': doctorId,
-      'appointmentId': appointmentId,
-      'consultationDate': consultationDate,
-      'consultationTime': consultationTime,
-      'chiefComplaint': chiefComplaint,
-      'diagnosis': diagnosis,
-      'treatmentPlan': treatmentPlan,
-      'maskingResult': maskingResult,
-      'aiResult': aiResult,
-      'doctorModifications': doctorModifications,
-      'patientInfo': patientInfo?.toJson(),
+      '_id': id,
+      'user_id': userId,
+      'original_image_filename': originalImageFilename,
+      'original_image_path': originalImagePath,
+      'processed_image_path': processedImagePath,
+      'timestamp': timestamp.toIso8601String(),
+      'inference_result': {
+        'backend_model_confidence': confidence,
+        'lesion_points': lesionPoints,
+      },
     };
   }
 }
