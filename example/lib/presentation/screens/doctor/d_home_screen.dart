@@ -7,6 +7,7 @@ import 'd_inference_result_screen.dart';
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return const Center(child: Text('진료 캘린더 화면 (임시)'));
@@ -26,13 +27,16 @@ class DoctorDashboardViewModel with ChangeNotifier {
   }
 
   int get selectedIndex => _selectedMenu.index;
+
   void setSelectedIndex(int index) {
     setSelectedMenu(DoctorMenu.values[index]);
   }
 }
 
 class DoctorHomeScreen extends StatelessWidget {
-  const DoctorHomeScreen({super.key});
+  final String baseUrl; // ✅ baseUrl 추가
+
+  const DoctorHomeScreen({super.key, required this.baseUrl}); // ✅ 생성자 수정
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +53,7 @@ class DoctorHomeScreen extends StatelessWidget {
     Widget mainContent;
     switch (dashboardViewModel.selectedMenu) {
       case DoctorMenu.inferenceResult:
-        mainContent = const InferenceResultScreen();
+        mainContent = InferenceResultScreen(baseUrl: baseUrl); // ✅ 전달
         break;
       case DoctorMenu.calendar:
         mainContent = const CalendarScreen();

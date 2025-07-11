@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 // ✅ 필요한 화면들 임포트
 import '/presentation/screens/doctor/d_home_screen.dart';
-import '/presentation/screens/doctor/d_inference_result_screen.dart'; // ✅ 추가
+import '/presentation/screens/doctor/d_inference_result_screen.dart';
 import '/presentation/screens/main_scaffold.dart';
 import '/presentation/screens/login_screen.dart';
 import '/presentation/screens/register_screen.dart';
@@ -36,9 +36,11 @@ GoRouter createRouter(String baseUrl) {
       ),
       GoRoute(
         path: '/d_home',
-        builder: (context, state) => const DoctorHomeScreen(),
-        routes: [
-        ],
+        builder: (context, state) {
+          final passedBaseUrl = state.extra as String? ?? baseUrl;
+          return DoctorHomeScreen(baseUrl: passedBaseUrl); // ✅ baseUrl 전달
+        },
+        routes: [],
       ),
       ShellRoute(
         builder: (context, state, child) {

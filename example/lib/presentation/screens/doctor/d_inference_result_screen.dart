@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '/presentation/viewmodel/doctor/d_consultation_record_viewmodel.dart';
 import '/presentation/model/doctor/d_consultation_record.dart';
+import 'd_result_detail_screen.dart';
 
 class InferenceResultScreen extends StatefulWidget {
-  const InferenceResultScreen({super.key});
+  final String baseUrl;
+
+  const InferenceResultScreen({super.key, required this.baseUrl});
 
   @override
   State<InferenceResultScreen> createState() => _InferenceResultScreenState();
@@ -42,6 +45,9 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
     final List<ConsultationRecord> sortedRecords = List.from(records)
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp)); // 최신순
 
+    // base URL에서 "/api" 제거 (정적 파일 경로용)
+    final imageBaseUrl = widget.baseUrl.replaceAll('/api', '');
+
     return ListView.builder(
       padding: const EdgeInsets.all(12),
       itemCount: sortedRecords.length,
@@ -68,6 +74,17 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
                 Text('파일명: ${record.originalImageFilename}'),
               ],
             ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ResultDetailScreen(
+                    originalImageUrl: '$imageBaseUrl${record.originalImagePath}',
+                    processedImageUrl: '$imageBaseUrl${record.processedImagePath}',
+                  ),
+                ),
+              );
+            },
           ),
         );
       },
