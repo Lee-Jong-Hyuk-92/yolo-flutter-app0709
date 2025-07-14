@@ -44,7 +44,10 @@ GoRouter createRouter(String baseUrl) {
       ),
       ShellRoute(
         builder: (context, state, child) {
-          return MainScaffold(child: child, currentLocation: state.uri.toString());
+          return MainScaffold(
+            child: child,
+            currentLocation: state.uri.toString(),
+          );
         },
         routes: [
           GoRoute(
@@ -65,7 +68,10 @@ GoRouter createRouter(String baseUrl) {
           ),
           GoRoute(
             path: '/upload',
-            builder: (context, state) => const UploadScreen(),
+            builder: (context, state) {
+              final passedBaseUrl = state.extra as String? ?? baseUrl;
+              return UploadScreen(baseUrl: passedBaseUrl); // ✅ 수정됨
+            },
           ),
           GoRoute(
             path: '/diagnosis/realtime',
@@ -79,8 +85,11 @@ GoRouter createRouter(String baseUrl) {
           ),
           GoRoute(
             path: '/history',
-            builder: (context, state) => const HistoryScreen(),
-          ),
+            builder: (context, state) {
+              final passedBaseUrl = state.extra as String? ?? baseUrl;
+              return HistoryScreen(baseUrl: passedBaseUrl); // ✅ baseUrl 전달
+            },
+            ),
           GoRoute(
             path: '/clinics',
             builder: (context, state) => const ClinicsScreen(),

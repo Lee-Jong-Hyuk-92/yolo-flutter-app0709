@@ -41,11 +41,9 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
   }
 
   Widget _buildListView(List<ConsultationRecord> records) {
-    final Map<String, int> dailyIndexMap = {};
     final List<ConsultationRecord> sortedRecords = List.from(records)
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp)); // 최신순
 
-    // base URL에서 "/api" 제거 (정적 파일 경로용)
     final imageBaseUrl = widget.baseUrl.replaceAll('/api', '');
 
     return ListView.builder(
@@ -53,19 +51,42 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
       itemCount: sortedRecords.length,
       itemBuilder: (context, index) {
         final record = sortedRecords[index];
-        final timestamp = record.timestamp;
-        final formattedTime = DateFormat('yyyy-MM-dd-HH-mm').format(timestamp);
-        final dateKey = DateFormat('yyyyMMdd').format(timestamp);
+        final listIndex = sortedRecords.length - index; // 최신이 [n], 오래된게 [1]
 
-        dailyIndexMap[dateKey] = (dailyIndexMap[dateKey] ?? 0) + 1;
-        final dailyIndex = dailyIndexMap[dateKey]!;
+        String? formattedTime;
+        try {
+          final imagePath = record.originalImagePath;
+          final filename = imagePath.split('/').last;
+          final parts = filename.split('_');
+
+          print('🧪 filename: $filename');
+          print('🧪 split("_") 결과: $parts');
+
+          if (parts.length >= 2) {
+            final timePart = parts[1];
+            final y = timePart.substring(0, 4);
+            final m = timePart.substring(4, 6);
+            final d = timePart.substring(6, 8);
+            final h = timePart.substring(8, 10);
+            final min = timePart.substring(10, 12);
+
+            final dateString = '$y-$m-$d $h:$min:00'.replaceAll(' ', 'T');
+            final parsed = DateTime.parse(dateString);
+            formattedTime = DateFormat('yyyy-MM-dd HH:mm').format(parsed);
+          } else {
+            formattedTime = '시간 정보 없음';
+          }
+        } catch (e) {
+          print('❌ 시간 파싱 오류: $e');
+          formattedTime = '시간 파싱 오류';
+        }
 
         return Card(
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: ListTile(
-            title: Text('[$dailyIndex] $formattedTime'),
+            title: Text('[$listIndex] $formattedTime'),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
