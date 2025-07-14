@@ -50,8 +50,8 @@ class _LoginScreenState extends State<LoginScreen> {
           context.go('/d_home');
           print('의사 홈으로 이동: /d_home'); // ✅ 디버깅용 로그
         } else {
-          context.go('/home', extra: {'userId': user.id});
-          print('환자 홈으로 이동: /home, userId: ${user.id}'); // ✅ 디버깅용 로그
+          context.go('/home', extra: {'userId': user.registerId});
+          print('환자 홈으로 이동: /home, userId: ${user.registerId}'); // ✅ 디버깅용 로그
         }
       } else {
         final error = authViewModel.errorMessage ?? '로그인 실패';
