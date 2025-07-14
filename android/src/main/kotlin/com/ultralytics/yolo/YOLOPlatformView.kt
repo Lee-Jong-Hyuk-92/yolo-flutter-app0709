@@ -249,6 +249,20 @@ class YOLOPlatformView(
                         result.error("capture_failed", "Failed to capture frame from camera", null)
                     }
                 }
+
+                // ✅ 여기에 이 코드 추가
+                "captureRawFrame" -> {
+                    Log.d(TAG, "Received captureRawFrame call")
+                    val imageData = yoloView.captureRawFrame()
+                    if (imageData != null) {
+                        Log.d(TAG, "Raw frame captured successfully: ${imageData.size} bytes")
+                        result.success(imageData)
+                    } else {
+                        Log.e(TAG, "Failed to capture raw frame")
+                        result.error("capture_failed", "Failed to capture raw camera frame", null)
+                    }
+                }
+
                 "listen" -> {
                     Log.d(TAG, "EventChannel listen method called")
                     // Called when EventChannel starts the stream

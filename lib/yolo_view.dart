@@ -411,6 +411,28 @@ class YOLOViewController {
       rethrow;
     }
   }
+  
+  // ✅ 여기에 아래 메서드를 추가하세요
+  Future<Uint8List?> captureRawFrame() async {
+    try {
+      if (_methodChannel == null) {
+        debugPrint('❌ captureRawFrame(): _methodChannel is null');
+        return null;
+      }
+
+      final result = await _methodChannel!.invokeMethod('captureRawFrame');
+      if (result != null && result is Uint8List) {
+        return result;
+      } else if (result is List<int>) {
+        return Uint8List.fromList(result);
+      } else {
+        debugPrint('❌ captureRawFrame(): 예상치 못한 반환값: ${result.runtimeType}');
+      }
+    } catch (e) {
+      debugPrint('❌ captureRawFrame() 오류: $e');
+    }
+    return null;
+  }
 
   /// Sets the streaming configuration for real-time detection.
   ///
@@ -700,6 +722,17 @@ class YOLOViewState extends State<YOLOView> {
   Timer? _subscriptionTimer;
   Timer? _recreateTimer;
   Timer? _errorRetryTimer;
+
+  bool _isVisible = true; // 화면 표시 여부 상태 변수
+
+  /// ✅ 외부에서 GlobalKey로 접근 가능한 표시/숨김 함수
+  void setVisibility(bool visible) {
+    if (mounted) {
+      setState(() {
+        _isVisible = visible;
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -1126,7 +1159,12 @@ class YOLOViewState extends State<YOLOView> {
         child: Text('Platform not supported for YOLOView'),
       );
     }
-    return platformView;
+    
+    // ✅ 여기를 수정!
+    return Visibility(
+      visible: _isVisible,
+      child: platformView,
+    );
   }
 
   @visibleForTesting

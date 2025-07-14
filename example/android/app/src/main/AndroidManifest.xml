@@ -1,12 +1,25 @@
 <!-- Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license -->
 <!-- C:\Users\302-1\Desktop\yolo-flutter-app\example\android\app\src\main\AndroidManifest.xml-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <!-- Internet permission for downloading models -->
     <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Camera permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
+
+    <!-- ✅ Android 13+ (API 33~34) 사진 저장을 위한 권한 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+
+    <!-- ✅ Android 12 이하 대응 (선택) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
     <application
         android:label="yolo_example"
@@ -40,6 +53,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.

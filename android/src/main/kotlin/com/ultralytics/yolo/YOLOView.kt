@@ -31,6 +31,9 @@ import android.view.Gravity
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 import android.content.res.Configuration
+import java.io.ByteArrayOutputStream
+import android.graphics.Bitmap
+import android.util.Size
 
 class YOLOView @JvmOverloads constructor(
     context: Context,
@@ -39,6 +42,9 @@ class YOLOView @JvmOverloads constructor(
 
     // Lifecycle owner for camera
     private var lifecycleOwner: LifecycleOwner? = null
+
+    // 🔽 여기에 선언해야 합니다
+    private var latestFrameBitmap: Bitmap? = null
 
     companion object {
         private const val REQUEST_CODE_PERMISSIONS = 10
@@ -453,8 +459,9 @@ class YOLOView @JvmOverloads constructor(
                         .build()
 
                     imageAnalysisUseCase = ImageAnalysis.Builder()
+                        //.setTargetResolution(android.util.Size(1280, 720))
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                        .setTargetAspectRatio(AspectRatio.RATIO_16_9)
                         .build()
 
                     cameraExecutor = Executors.newSingleThreadExecutor()
@@ -550,6 +557,21 @@ class YOLOView @JvmOverloads constructor(
             imageProxy.close()
             return
         }
+
+        // ✅ 회전 각도 가져오기
+        val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+
+        // ✅ 필요 시 회전 적용
+        val rotatedBitmap = if (rotationDegrees != 0) {
+            val matrix = Matrix()
+            matrix.postRotate(rotationDegrees.toFloat())
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        } else {
+            bitmap
+        }
+
+        // ✅ 순수 프레임 저장용 복사본 저장 (✔ 회전된 버전으로 저장)
+        latestFrameBitmap = rotatedBitmap.copy(Bitmap.Config.ARGB_8888, false)
 
         predictor?.let { p ->
             // Check if we should run inference on this frame
@@ -1475,6 +1497,30 @@ class YOLOView @JvmOverloads constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error capturing frame", e)
             return null
+        }
+    }
+
+    fun captureRawFrame(): ByteArray? {
+        Log.d(TAG, "🟣 YOLOView.captureRawFrame() called")
+
+        // ⏳ Wait up to 1s for latestFrameBitmap to be ready
+        val startTime = System.currentTimeMillis()
+        while (latestFrameBitmap == null && System.currentTimeMillis() - startTime < 1000) {
+            Thread.sleep(50)
+        }
+
+        val bitmap = latestFrameBitmap ?: run {
+            Log.e(TAG, "❌ latestFrameBitmap is still null after waiting")
+            return null
+        }
+
+        return try {
+            val outputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            outputStream.toByteArray()
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Exception while compressing latestFrameBitmap: ${e.message}")
+            null
         }
     }
 

@@ -3,6 +3,8 @@ import 'package:ultralytics_yolo/yolo.dart';
 import 'package:ultralytics_yolo/yolo_result.dart';
 import 'package:ultralytics_yolo/yolo_view.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart'; // YOLO 관련 클래스를 위해 추가
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '/models/model_type.dart';
 import '/models/slider_type.dart';
 import '/services/model_manager.dart';
@@ -11,6 +13,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http; // Import for HTTP requests
+import 'dart:convert'; // ✅ 추가
 
 // Alpha 값 상수화
 const int _kAlpha80Percent = 204; // 0.8 * 255
@@ -21,6 +24,8 @@ const int _kAlpha30Percent = 76; // 0.3 * 255 (for inactive track color)
 
 int _captureIndex = 1;
 DateTime? _lastCaptureDate;
+
+//List<YOLOResult> _latestResults = []; //추론 결과를 저장할 변수 선언
 
 class CameraInferenceScreen extends StatefulWidget {
   final String userId;
@@ -60,6 +65,19 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
   final bool _useController = true;
 
   late final ModelManager _modelManager;
+
+  // ✅ YOLO 추리 결과 저장 변수
+  List<YOLOResult> _latestResults = [];
+
+  // ✅ YOLOResult -> JSON 질리토클 함수
+  List<Map<String, dynamic>> _serializeYOLOResults(List<YOLOResult> results) {
+    return results.map((r) => {
+      'className': r.className,
+      'confidence': r.confidence,
+      'box': [r.boundingBox.left, r.boundingBox.top, r.boundingBox.right, r.boundingBox.bottom],
+      'classIndex': r.classIndex,
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -104,11 +122,13 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
     });
   }
 
+
   /// YOLO 추론 결과가 발생할 때 호출되는 콜백 함수.
   ///
   /// 이 함수는 감지된 객체의 개수를 업데이트하고,
   /// 분류(Classification) 모드일 경우 가장 확률이 높은 3개의 클래스를 표시합니다.
   void _onDetectionResults(List<YOLOResult> results) {
+    _latestResults = results; // 직렬화를 위해 저장
     debugPrint('🟦 onDetectionResults called: ${results.length}개');
     results.asMap().forEach((i, r) => debugPrint(' - $i: ${r.className} (${r.confidence})'));
     if (!mounted) return;
@@ -147,8 +167,8 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
     });
   }
 
-  /// 캡처 버튼 로직: 모델 일시 중지 후 원본 이미지 캡처 및 서버 전송
-  Future<void> _captureAndSendToServer() async {
+/// 캡처 버튼 로직: 모델 일시 중지 후 원본 이미지 캡처 및 서버 전송
+Future<void> _captureAndSendToServer() async {
   debugPrint('🟢 _captureAndSendToServer: Start');
 
   try {
@@ -156,30 +176,67 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
       throw Exception('YOLO 컨트롤러가 초기화되지 않았습니다.');
     }
 
+    // ✅ YOLOView를 일시적으로 비활성화
+    final viewKey = _yoloViewKey.currentState;
+    viewKey?.setVisibility(false);
+
     setState(() {
       _isModelLoading = true;
       _loadingMessage = '원본 이미지 캡처 중...';
     });
 
-    // 1. 현재 프레임 캡처 (세그먼트 없이)
-    final Uint8List? imageData = await _yoloController.captureFrame();
-    debugPrint('🟢 캡처 결과: ${imageData != null ? "성공" : "실패"}');
+
+    Uint8List? imageData;
+    const maxWait = Duration(seconds: 1);
+    final start = DateTime.now();
+
+    while (imageData == null && DateTime.now().difference(start) < maxWait) {
+      imageData = await _yoloController.captureRawFrame();
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+
+    // ✅ 다시 YOLOView 활성화
+    viewKey?.setVisibility(true);
 
     if (imageData == null) {
       throw Exception('이미지 캡처에 실패했습니다.');
     }
 
-    // 2. 파일명 생성: userId_YYYYMMDDHHmmss_index.png
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    if (_lastCaptureDate == null || _lastCaptureDate != today) {
-      _captureIndex = 1;
-      _lastCaptureDate = today;
-    } else {
-      _captureIndex += 1;
+    // ✅ Android 13+ 및 Android 15 대응 권한 요청
+    if (Platform.isAndroid) {
+      var status = await Permission.photos.request(); // Android 13+ 에서는 READ_MEDIA_IMAGES 권한에 해당
+      if (!status.isGranted) {
+        throw Exception('사진 저장 권한이 필요합니다.');
+      }
     }
 
+    // ✅ 갤러리에 저장
+    final galleryFilename = 'YOLO_${DateTime.now().toIso8601String().replaceAll(':', '_')}.png';
+    final result = await ImageGallerySaver.saveImage(
+      imageData,
+      name: galleryFilename.split('.').first,
+      quality: 100,
+    );
+
+    if (result['isSuccess'] == true) {
+      debugPrint('✅ 갤러리에 저장 성공: $result');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('📷 사진이 갤러리에 저장되었습니다')),
+        );
+      }
+    } else {
+      debugPrint('❌ 갤러리 저장 실패: $result');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('갤러리 저장 실패')),
+        );
+      }
+    }
+
+    //서버 전송 활성화 시작 ---------------------------
+    final now = DateTime.now();
     final formattedDate = "${now.year.toString().padLeft(4, '0')}"
         "${now.month.toString().padLeft(2, '0')}"
         "${now.day.toString().padLeft(2, '0')}"
@@ -187,26 +244,25 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
         "${now.minute.toString().padLeft(2, '0')}"
         "${now.second.toString().padLeft(2, '0')}";
 
-    final filename = "${widget.userId}_${formattedDate}_${_captureIndex}.png";
+    final filename = "${widget.userId}_${formattedDate}.png";
 
-    // 3. 서버 URL
-    final String serverUrl = '${widget.baseUrl}/upload_masked_image';
+    final String jsonResults = jsonEncode(_serializeYOLOResults(_latestResults));
+    //final String serverUrl = '${widget.baseUrl}/upload_result_with_image';
+    final String serverUrl = '${widget.baseUrl}/upload_image';
+    //final String serverUrl = '${widget.baseUrl}/upload_masked_image';
 
-    // 4. MultipartRequest 구성
     final request = http.MultipartRequest('POST', Uri.parse(serverUrl))
       ..fields['user_id'] = widget.userId
-      ..fields['filename'] = filename;
+      ..fields['filename'] = filename
+      ..fields['results'] = jsonResults
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        imageData,
+        filename: filename,
+      ));
 
-    request.files.add(http.MultipartFile.fromBytes(
-      'file',
-      imageData,
-      filename: filename,
-    ));
-
-    // 5. 전송
     final response = await request.send();
 
-    // 6. 응답 처리
     if (response.statusCode == 200) {
       debugPrint('📤 $filename 업로드 성공!');
       if (mounted) {
@@ -223,6 +279,8 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
         );
       }
     }
+    //서버 전송 활성화 끝 ---------------------------
+
   } catch (e) {
     debugPrint('❌ 오류 발생: $e');
     if (mounted) {
@@ -238,6 +296,8 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
     });
   }
 }
+
+
 
   /// 새로운 캡쳐 버튼 위젯을 빌드합니다.
   Widget _buildCaptureButton() {
@@ -259,9 +319,8 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
           // YOLO View: 맨 뒤에 위치해야 함
           if (_modelPath != null && !_isModelLoading) // _modelPath가 null이 아니고 로딩 중이 아닐 때만 표시
             YOLOView(
-              key: _useController
-                  ? const ValueKey('yolo_view_static')
-                  : _yoloViewKey,
+              // ⚠️ 수정된 부분: _useController 조건 없이 _yoloViewKey를 사용
+              key: _yoloViewKey,
               controller: _useController ? _yoloController : null,
               modelPath: _modelPath!, // _modelPath 사용
               task: _selectedModel.task,
@@ -752,8 +811,8 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
 
   /// ModelType에 따라 모델 파일 이름을 반환합니다.
   ///
-  /// 현재는 `ModelType.segment`에 대해서만 특정 파일 이름을 반환하고
-  /// 다른 모든 모델 타입은 기본값으로 `pill_best_float16.tflite`를 반환합니다.
+  /// 현재는 ModelType.segment에 대해서만 특정 파일 이름을 반환하고
+  /// 다른 모든 모델 타입은 기본값으로 pill_best_float16.tflite를 반환합니다.
   String _getModelFileName(ModelType modelType) {
     switch (modelType) {
       case ModelType.detect:
@@ -773,8 +832,8 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
 
   /// 플랫폼에 맞는 모델을 로드합니다.
   ///
-  /// `_selectedModel`에 따라 해당 모델 파일을 `assets/models`에서 로드하고,
-  /// 이를 애플리케이션 문서 디렉토리에 복사한 후, `_modelPath`에 설정합니다.
+  /// _selectedModel에 따라 해당 모델 파일을 assets/models에서 로드하고,
+  /// 이를 애플리케이션 문서 디렉토리에 복사한 후, _modelPath에 설정합니다.
   /// 모델 로딩 중 상태를 업데이트하여 사용자에게 진행 상황을 보여줍니다.
   Future<void> _loadModelForPlatform() async {
     setState(() {

@@ -18,7 +18,13 @@ dependencies:
   http: ^1.2.1
   go_router: ^16.0.0
   provider: ^6.1.1         # ✅ 추가된 부분
-  intl: ^0.18.1 # ✅ 최신 버전 사용
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  cached_network_image: ^3.3.1  # ✅ 최신 버전 또는 안정 버전 명시
+  permission_handler: ^11.0.0
+  image_gallery_saver:
+    path: packages/image_gallery_saver
+  
 
   ultralytics_yolo:
     path: ../
