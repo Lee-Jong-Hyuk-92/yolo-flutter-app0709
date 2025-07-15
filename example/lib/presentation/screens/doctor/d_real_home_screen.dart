@@ -1,8 +1,136 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart'; // GoRouter를 사용하기 위해 임포트
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '/presentation/viewmodel/doctor/d_dashboard_viewmodel.dart';
+
+// ✅ DoctorDrawer 위젯: 모든 의사 관련 화면에서 재사용할 수 있는 Drawer
+class DoctorDrawer extends StatelessWidget {
+  final String baseUrl;
+
+  const DoctorDrawer({Key? key, required this.baseUrl}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          // ✅ TOOTH AI 닥터 메뉴와 로그아웃 버튼을 포함하는 커스텀 DrawerHeader
+          Container(
+            height: 120, // 헤더 높이 조절
+            decoration: const BoxDecoration(
+              color: Colors.blue,
+              borderRadius: BorderRadius.only(
+                bottomRight: Radius.circular(20),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'TOOTH AI 닥터 메뉴',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  // ✅ 로그아웃 버튼
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    onPressed: () {
+                      // 로그아웃 로직 구현
+                      context.go('/login'); // 로그인 화면으로 이동
+                    },
+                    tooltip: '로그아웃',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // ✅ 홈 버튼 추가
+          _buildDrawerItem(
+            context,
+            icon: Icons.home, // 홈 아이콘
+            title: '홈',
+            onTap: () {
+              Navigator.pop(context); // Drawer 닫기
+              context.go('/d_home', extra: baseUrl); // d_real_home_screen.dart로 이동
+            },
+          ),
+          // ✅ 메뉴 항목들
+          _buildDrawerItem(
+            context,
+            icon: Icons.personal_injury, // 비대면 진료 신청 아이콘
+            title: '비대면 진료 신청',
+            onTap: () {
+              Navigator.pop(context); // Drawer 닫기
+              context.go('/d_dashboard', extra: baseUrl); // 해당 라우트로 이동
+            },
+          ),
+          _buildDrawerItem(
+            context,
+            icon: Icons.calendar_today, // 예약 현황 아이콘
+            title: '예약 현황',
+            onTap: () {
+              Navigator.pop(context); // Drawer 닫기
+              context.go('/d_appointments', extra: baseUrl); // 해당 라우트로 이동
+            },
+          ),
+          _buildDrawerItem(
+            context,
+            icon: Icons.assignment, // 진료 결과 아이콘
+            title: '진료 결과',
+            onTap: () {
+              Navigator.pop(context); // Drawer 닫기
+              context.go('/d_inference_result', extra: baseUrl); // 해당 라우트로 이동
+            },
+          ),
+          _buildDrawerItem(
+            context,
+            icon: Icons.event, // 진료 캘린더 아이콘
+            title: '진료 캘린더',
+            onTap: () {
+              Navigator.pop(context); // Drawer 닫기
+              context.go('/d_calendar', extra: baseUrl); // 해당 라우트로 이동
+            },
+          ),
+          _buildDrawerItem(
+            context,
+            icon: Icons.people, // 환자 목록 아이콘
+            title: '환자 목록',
+            onTap: () {
+              Navigator.pop(context); // Drawer 닫기
+              context.go('/d_patients', extra: baseUrl); // 해당 라우트로 이동
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Drawer 메뉴 항목을 위한 헬퍼 위젯 (DoctorDrawer 내부에 정의)
+  Widget _buildDrawerItem(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap}) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.blueGrey[700]),
+      title: Text(
+        title,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: Colors.blueGrey[800],
+        ),
+      ),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 5.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      tileColor: Colors.white,
+      hoverColor: Colors.blue.withOpacity(0.1),
+    );
+  }
+}
+
 
 // DRealHomeScreen 클래스 정의
 class DRealHomeScreen extends StatefulWidget {
@@ -39,97 +167,8 @@ class _DRealHomeScreenState extends State<DRealHomeScreen> {
           ),
         ),
       ),
-      // ✅ Drawer 추가
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            // ✅ TOOTH AI 닥터 메뉴와 로그아웃 버튼을 포함하는 커스텀 DrawerHeader
-            Container(
-              height: 120, // 헤더 높이 조절
-              decoration: const BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.only(
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: SafeArea(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'TOOTH AI 닥터 메뉴',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    // ✅ 로그아웃 버튼
-                    IconButton(
-                      icon: const Icon(Icons.logout, color: Colors.white),
-                      onPressed: () {
-                        // 로그아웃 로직 구현
-                        // 예시: GoRouter를 사용하여 로그인 화면으로 이동
-                        context.go('/login');
-                      },
-                      tooltip: '로그아웃',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // ✅ 메뉴 항목들
-            _buildDrawerItem(
-              context,
-              icon: Icons.personal_injury, // 비대면 진료 신청 아이콘
-              title: '비대면 진료 신청',
-              onTap: () {
-                Navigator.pop(context); // Drawer 닫기
-                context.go('/d_dashboard', extra: widget.baseUrl); // 해당 라우트로 이동
-              },
-            ),
-            _buildDrawerItem(
-              context,
-              icon: Icons.calendar_today, // 예약 현황 아이콘
-              title: '예약 현황',
-              onTap: () {
-                Navigator.pop(context); // Drawer 닫기
-                context.go('/d_appointments'); // 해당 라우트로 이동 (router.dart에 정의 필요)
-              },
-            ),
-            _buildDrawerItem(
-              context,
-              icon: Icons.assignment, // 진료 결과 아이콘
-              title: '진료 결과',
-              onTap: () {
-                Navigator.pop(context); // Drawer 닫기
-                context.go('/d_inference_result', extra: widget.baseUrl); // 해당 라우트로 이동 (router.dart에 정의 필요)
-              },
-            ),
-            _buildDrawerItem(
-              context,
-              icon: Icons.event, // 진료 캘린더 아이콘
-              title: '진료 캘린더',
-              onTap: () {
-                Navigator.pop(context); // Drawer 닫기
-                context.go('/d_calendar'); // 해당 라우트로 이동 (router.dart에 정의 필요)
-              },
-            ),
-            _buildDrawerItem(
-              context,
-              icon: Icons.people, // 환자 목록 아이콘
-              title: '환자 목록',
-              onTap: () {
-                Navigator.pop(context); // Drawer 닫기
-                context.go('/d_patients'); // 해당 라우트로 이동 (router.dart에 정의 필요)
-              },
-            ),
-            // 필요하다면 다른 메뉴 항목들을 여기에 추가
-          ],
-        ),
-      ),
+      // ✅ 분리된 DoctorDrawer 위젯 사용
+      drawer: DoctorDrawer(baseUrl: widget.baseUrl),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -198,24 +237,6 @@ class _DRealHomeScreenState extends State<DRealHomeScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  // Drawer 메뉴 항목을 위한 헬퍼 위젯
-  Widget _buildDrawerItem(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap}) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blueGrey[700]),
-      title: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: Colors.blueGrey[800],
-        ),
-      ),
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 5.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      tileColor: Colors.white,
-      hoverColor: Colors.blue.withOpacity(0.1),
     );
   }
 
