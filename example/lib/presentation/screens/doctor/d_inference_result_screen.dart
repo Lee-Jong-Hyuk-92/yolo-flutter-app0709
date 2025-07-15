@@ -87,7 +87,7 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
                     },
                     modelInfos: {
                       1: {
-                        'model_used': 'YOLOv11',
+                        'model_used': record.modelUsed, // ✅ DB에서 불러온 값 사용
                         'confidence': record.confidence ?? 0.0,
                         'lesion_points': record.lesionPoints ?? [],
                       },

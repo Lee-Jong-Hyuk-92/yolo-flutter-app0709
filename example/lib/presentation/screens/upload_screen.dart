@@ -11,10 +11,10 @@ import 'package:http_parser/http_parser.dart';
 import 'package:provider/provider.dart';
 
 import '/presentation/viewmodel/auth_viewmodel.dart';
-import 'doctor/d_result_detail_screen.dart'; // ✅ 결과 화면 import
+import 'doctor/d_result_detail_screen.dart';
 
 class UploadScreen extends StatefulWidget {
-  final String baseUrl; // ex: http://192.168.0.19:5000/api
+  final String baseUrl;
 
   const UploadScreen({super.key, required this.baseUrl});
 
@@ -93,14 +93,12 @@ class _UploadScreenState extends State<UploadScreen> {
         final responseData = json.decode(responseBody);
         final processedPath = responseData['image_url'] as String?;
         final inferenceData = responseData['inference_data'] as Map<String, dynamic>?;
+        final originalPath = responseData['original_image_path'] as String?;
 
-        if (processedPath != null && inferenceData != null) {
+        if (processedPath != null && inferenceData != null && originalPath != null) {
           final baseStaticUrl = widget.baseUrl.replaceFirst('/api', '');
 
-          final originalImageUrl = _imageFile != null
-              ? _imageFile!.path
-              : '$baseStaticUrl${responseData['original_image_path']}';
-
+          final originalImageUrl = '$baseStaticUrl$originalPath';
           final processedImageUrl = '$baseStaticUrl$processedPath';
 
           Navigator.push(
@@ -109,7 +107,7 @@ class _UploadScreenState extends State<UploadScreen> {
               builder: (_) => ResultDetailScreen(
                 originalImageUrl: originalImageUrl,
                 processedImageUrls: {
-                  1: processedImageUrl, // 현재는 1번 모델만 있음
+                  1: processedImageUrl,
                 },
                 modelInfos: {
                   1: inferenceData,

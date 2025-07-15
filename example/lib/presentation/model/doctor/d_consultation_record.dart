@@ -7,6 +7,8 @@ class ConsultationRecord {
   final DateTime timestamp;
 
   final double? confidence;
+  final String? modelUsed;
+  final String? className;
   final List<List<int>>? lesionPoints;
 
   ConsultationRecord({
@@ -17,6 +19,8 @@ class ConsultationRecord {
     required this.processedImagePath,
     required this.timestamp,
     this.confidence,
+    this.modelUsed,
+    this.className,
     this.lesionPoints,
   });
 
@@ -51,7 +55,9 @@ class ConsultationRecord {
       originalImagePath: json['original_image_path'] ?? '',
       processedImagePath: json['processed_image_path'] ?? '',
       timestamp: DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
-      confidence: (inference['backend_model_confidence'] as num?)?.toDouble(),
+      confidence: (inference['confidence'] as num?)?.toDouble(),
+      modelUsed: inference['model_used'] ?? '',
+      className: inference['class_name'] ?? '',
       lesionPoints: (inference['lesion_points'] as List?)
           ?.map<List<int>>((pt) => List<int>.from(pt))
           .toList(),
@@ -67,7 +73,9 @@ class ConsultationRecord {
       'processed_image_path': processedImagePath,
       'timestamp': timestamp.toIso8601String(),
       'inference_result': {
-        'backend_model_confidence': confidence,
+        'confidence': confidence,
+        'model_used': modelUsed,
+        'class_name': className,
         'lesion_points': lesionPoints,
       },
     };
