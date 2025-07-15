@@ -91,16 +91,16 @@ class _UploadScreenState extends State<UploadScreen> {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200) { 
         final responseData = json.decode(responseBody);
-        final processedPath = responseData['processed_image_path'] as String?;
+        final processedPath = responseData['image_url'] as String?;
         if (processedPath != null) {
           final baseStaticUrl = widget.baseUrl.replaceFirst('/api', '');
           setState(() {
             _resultImageUrl = '$baseStaticUrl$processedPath';
           });
         } else {
-          throw Exception('processed_image_path 없음');
+          throw Exception('image_url 없음');
         }
       } else {
         print('서버 오류: ${response.statusCode}');
