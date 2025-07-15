@@ -4,11 +4,12 @@ import 'package:provider/provider.dart';
 
 import 'presentation/viewmodel/userinfo_viewmodel.dart';
 import 'services/router.dart';
-import '/presentation/screens/doctor/d_home_screen.dart';
-import '/presentation/viewmodel/doctor/d_consultation_record_viewmodel.dart';
 import '/presentation/viewmodel/auth_viewmodel.dart';
 import '/presentation/viewmodel/doctor/d_patient_viewmodel.dart';
-import 'core/theme/app_theme.dart'; // ✅ 테마 임포트 추가
+import '/presentation/viewmodel/doctor/d_consultation_record_viewmodel.dart';
+import '/presentation/viewmodel/doctor/d_dashboard_viewmodel.dart'; // ✅ 유지
+
+import 'core/theme/app_theme.dart';
 
 void main() {
   const String globalBaseUrl = "http://192.168.0.19:5000/api";
@@ -23,13 +24,13 @@ void main() {
           create: (_) => UserInfoViewModel(),
         ),
         ChangeNotifierProvider(
-          create: (_) => DoctorDashboardViewModel(),
-        ),
-        ChangeNotifierProvider(
           create: (_) => DPatientViewModel(baseUrl: globalBaseUrl),
         ),
         ChangeNotifierProvider(
           create: (_) => ConsultationRecordViewModel(baseUrl: globalBaseUrl),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DoctorDashboardViewModel(), // ✅ 단 하나만 등록
         ),
       ],
       child: YOLOExampleApp(baseUrl: globalBaseUrl),
@@ -48,7 +49,7 @@ class YOLOExampleApp extends StatelessWidget {
       title: 'MediTooth',
       debugShowCheckedModeBanner: false,
       routerConfig: createRouter(baseUrl),
-      theme: AppTheme.lightTheme, // ✅ 테마 적용
+      theme: AppTheme.lightTheme,
     );
   }
 }

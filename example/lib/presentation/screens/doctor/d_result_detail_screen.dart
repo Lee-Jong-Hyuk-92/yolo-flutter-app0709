@@ -8,7 +8,6 @@ class ResultDetailScreen extends StatefulWidget {
   final String originalImageUrl;
   final Map<int, String> processedImageUrls;
   final Map<int, Map<String, dynamic>> modelInfos;
-
   final String userId;
   final String inferenceResultId;
   final String baseUrl;
@@ -44,7 +43,7 @@ class _ResultDetailScreenState extends State<ResultDetailScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("주소 입력"),
+          title: Text("주소 입력", style: Theme.of(context).textTheme.titleLarge),
           content: TextField(
             controller: controller,
             decoration: const InputDecoration(hintText: "상세 주소를 입력하세요"),
@@ -55,9 +54,7 @@ class _ResultDetailScreenState extends State<ResultDetailScreen> {
               child: const Text("취소"),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.pop(context, controller.text.trim());
-              },
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
               child: const Text("확인"),
             ),
           ],
@@ -96,6 +93,7 @@ class _ResultDetailScreenState extends State<ResultDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     final double imageHeight = MediaQuery.of(context).size.height * 0.3;
     final currentUser = Provider.of<AuthViewModel>(context, listen: false).currentUser;
 
@@ -112,18 +110,28 @@ class _ResultDetailScreenState extends State<ResultDetailScreen> {
     final String className = "Dental Plaque";
 
     return Scaffold(
-      appBar: AppBar(title: const Text('결과 이미지 상세 보기')),
+      appBar: AppBar(
+        title: const Text('결과 이미지 상세 보기'),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('🖼️ 표시 중인 이미지', style: TextStyle(fontSize: 18)),
+            Text('🖼️ 표시 중인 이미지', style: textTheme.titleMedium),
             const SizedBox(height: 10),
-            Image.network(imageUrl, height: imageHeight, fit: BoxFit.contain),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                height: imageHeight,
+                fit: BoxFit.contain,
+              ),
+            ),
 
             const SizedBox(height: 24),
-            const Text('🧪 사용할 AI 모델 선택', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('🧪 사용할 AI 모델 선택', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -138,22 +146,23 @@ class _ResultDetailScreenState extends State<ResultDetailScreen> {
 
             const SizedBox(height: 24),
             if (modelInfo != null) ...[
-              const Text('📊 모델 분석 정보', style: TextStyle(fontSize: 18)),
+              Text('📊 모델 분석 정보', style: textTheme.titleMedium),
               const SizedBox(height: 8),
-              if (modelName != null) Text('모델: $modelName'),
-              if (confidence != null) Text('확신도: ${(confidence * 100).toStringAsFixed(1)}%'),
-              Text('클래스: $className'),
+              if (modelName != null) Text('모델: $modelName', style: textTheme.bodyMedium),
+              if (confidence != null) Text('확신도: ${(confidence * 100).toStringAsFixed(1)}%', style: textTheme.bodyMedium),
+              Text('클래스: $className', style: textTheme.bodyMedium),
             ],
 
             const SizedBox(height: 32),
-
-            // ✅ 환자(P)일 경우에만 신청 버튼 노출
             if (currentUser?.role == 'P')
               ElevatedButton.icon(
                 onPressed: _showAddressDialogAndApply,
                 icon: const Icon(Icons.send),
                 label: const Text('신청하기'),
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: textTheme.titleMedium?.copyWith(color: Colors.white),
+                ),
               ),
           ],
         ),

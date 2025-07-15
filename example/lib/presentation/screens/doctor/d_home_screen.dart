@@ -10,7 +10,13 @@ class CalendarScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('진료 캘린더 화면 (임시)'));
+    final textTheme = Theme.of(context).textTheme;
+    return Center(
+      child: Text(
+        '진료 캘린더 화면 (임시)',
+        style: textTheme.bodyMedium,
+      ),
+    );
   }
 }
 
@@ -34,26 +40,32 @@ class DoctorDashboardViewModel with ChangeNotifier {
 }
 
 class DoctorHomeScreen extends StatelessWidget {
-  final String baseUrl; // ✅ baseUrl 추가
+  final String baseUrl;
 
-  const DoctorHomeScreen({super.key, required this.baseUrl}); // ✅ 생성자 수정
+  const DoctorHomeScreen({super.key, required this.baseUrl});
 
   @override
   Widget build(BuildContext context) {
     final dashboardViewModel = context.watch<DoctorDashboardViewModel>();
     final authViewModel = context.read<AuthViewModel>();
     final currentUser = authViewModel.currentUser;
+    final textTheme = Theme.of(context).textTheme;
 
     if (currentUser == null || !currentUser.isDoctor) {
-      return const Scaffold(
-        body: Center(child: Text('의사 계정으로 로그인해야 합니다.')),
+      return Scaffold(
+        body: Center(
+          child: Text(
+            '의사 계정으로 로그인해야 합니다.',
+            style: textTheme.bodyMedium,
+          ),
+        ),
       );
     }
 
     Widget mainContent;
     switch (dashboardViewModel.selectedMenu) {
       case DoctorMenu.inferenceResult:
-        mainContent = InferenceResultScreen(baseUrl: baseUrl); // ✅ 전달
+        mainContent = DInferenceResultScreen(baseUrl: baseUrl);
         break;
       case DoctorMenu.calendar:
         mainContent = const CalendarScreen();
@@ -65,7 +77,12 @@ class DoctorHomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TOOTH AI'),
+        title: Text(
+          'TOOTH AI',
+          style: textTheme.headlineLarge?.copyWith(color: Colors.black),
+        ),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        elevation: 1,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -80,6 +97,8 @@ class DoctorHomeScreen extends StatelessWidget {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: dashboardViewModel.selectedIndex,
         onTap: dashboardViewModel.setSelectedIndex,
+        selectedLabelStyle: textTheme.labelLarge,
+        unselectedLabelStyle: textTheme.labelLarge?.copyWith(color: Colors.grey),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.analytics),

@@ -52,16 +52,24 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
     }
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, TextTheme textTheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
           SizedBox(
             width: 100,
-            child: Text('$label:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+            child: Text(
+              '$label:',
+              style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
           ),
-          Expanded(child: Text(value, style: const TextStyle(color: Colors.black54))),
+          Expanded(
+            child: Text(
+              value,
+              style: textTheme.bodyMedium,
+            ),
+          ),
         ],
       ),
     );
@@ -69,33 +77,43 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('환자 상세 정보')),
+        appBar: AppBar(
+          title: Text('환자 상세 정보', style: textTheme.headlineLarge),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('환자 상세 정보')),
-        body: Center(child: Text('오류: $_errorMessage')),
+        appBar: AppBar(
+          title: Text('환자 상세 정보', style: textTheme.headlineLarge),
+        ),
+        body: Center(
+          child: Text('오류: $_errorMessage', style: textTheme.bodyMedium),
+        ),
       );
     }
 
     if (_patient == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('환자 상세 정보')),
-        body: const Center(child: Text('환자 정보를 찾을 수 없습니다.')),
+        appBar: AppBar(
+          title: Text('환자 상세 정보', style: textTheme.headlineLarge),
+        ),
+        body: Center(
+          child: Text('환자 정보를 찾을 수 없습니다.', style: textTheme.bodyMedium),
+        ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${_patient!.name} 환자 상세 정보', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('${_patient!.name} 환자 상세 정보', style: textTheme.headlineLarge),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -112,23 +130,26 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('환자 기본 정보', style: Theme.of(context).textTheme.headlineSmall),
+                    Text('환자 기본 정보', style: textTheme.headlineSmall),
                     const SizedBox(height: 10),
-                    _buildInfoRow('이름', _patient!.name),
-                    _buildInfoRow('생년월일', _patient!.dateOfBirth),
-                    _buildInfoRow('성별', _patient!.gender),
-                    _buildInfoRow('연락처', _patient!.phoneNumber ?? 'N/A'),
-                    _buildInfoRow('주소', _patient!.address ?? 'N/A'),
+                    _buildInfoRow('이름', _patient!.name, textTheme),
+                    _buildInfoRow('생년월일', _patient!.dateOfBirth, textTheme),
+                    _buildInfoRow('성별', _patient!.gender, textTheme),
+                    _buildInfoRow('연락처', _patient!.phoneNumber ?? 'N/A', textTheme),
+                    _buildInfoRow('주소', _patient!.address ?? 'N/A', textTheme),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            Text('진단 결과 예시 (MongoDB)', style: Theme.of(context).textTheme.headlineSmall),
+            Text('진단 결과 예시 (MongoDB)', style: textTheme.headlineSmall),
             const SizedBox(height: 10),
-            // 여기는 향후 진단 결과 화면으로 이동하도록 안내
-            const Center(
-              child: Text('이 환자의 진단 기록은 진단 결과 탭에서 확인할 수 있습니다.'),
+            Center(
+              child: Text(
+                '이 환자의 진단 기록은 진단 결과 탭에서 확인할 수 있습니다.',
+                style: textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),

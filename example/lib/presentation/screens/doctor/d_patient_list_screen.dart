@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
-// ✅ 현재 프로젝트의 새 경로에 맞게 임포트
-import '../../viewmodel/doctor/d_patient_viewmodel.dart'; // DPatientViewModel 임포트
-import '../../viewmodel/auth_viewmodel.dart'; // ✅ DAuthViewModel 대신 AuthViewModel 임포트
-import '../doctor/d_patient_detail_screen.dart'; // DPatientDetailScreen 임포트
-import '../../model/doctor/d_patient.dart'; // DPatient 모델 임포트
-
+import '../../viewmodel/doctor/d_patient_viewmodel.dart';
+import '../../viewmodel/auth_viewmodel.dart';
+import '../doctor/d_patient_detail_screen.dart';
+import '../../model/doctor/d_patient.dart';
 
 class PatientListScreen extends StatefulWidget {
   const PatientListScreen({super.key});
@@ -26,13 +24,13 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   Future<void> _loadPatients() async {
-    // ✅ AuthViewModel과 DPatientViewModel 사용
     final authViewModel = context.read<AuthViewModel>();
     final patientViewModel = context.read<DPatientViewModel>();
 
-    // ✅ user.id가 nullable이므로 null 체크 추가
-    if (authViewModel.currentUser != null && authViewModel.currentUser!.isDoctor && authViewModel.currentUser!.id != null) {
-      await patientViewModel.fetchPatients(authViewModel.currentUser!.id!); // ✅ non-nullable로 사용
+    if (authViewModel.currentUser != null &&
+        authViewModel.currentUser!.isDoctor &&
+        authViewModel.currentUser!.id != null) {
+      await patientViewModel.fetchPatients(authViewModel.currentUser!.id!);
       if (patientViewModel.errorMessage != null) {
         _showSnack('환자 목록 로드 오류: ${patientViewModel.errorMessage}');
       }
@@ -49,23 +47,20 @@ class _PatientListScreenState extends State<PatientListScreen> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(15),
-        backgroundColor: Colors.blueGrey[700],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ DPatientViewModel과 AuthViewModel 사용
     final patientViewModel = context.watch<DPatientViewModel>();
     final authViewModel = context.watch<AuthViewModel>();
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('환자 목록', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('환자 목록', style: textTheme.headlineLarge),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -75,16 +70,16 @@ class _PatientListScreenState extends State<PatientListScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => _loadPatients(),
+            onPressed: _loadPatients,
           ),
         ],
       ),
       body: patientViewModel.isLoading
           ? const Center(child: CircularProgressIndicator())
           : patientViewModel.errorMessage != null
-              ? Center(child: Text('오류: ${patientViewModel.errorMessage}'))
+              ? Center(child: Text('오류: ${patientViewModel.errorMessage}', style: textTheme.bodyMedium))
               : patientViewModel.patients.isEmpty
-                  ? const Center(child: Text('등록된 환자가 없습니다.'))
+                  ? Center(child: Text('등록된 환자가 없습니다.', style: textTheme.bodyMedium))
                   : ListView.builder(
                       padding: const EdgeInsets.all(8.0),
                       itemCount: patientViewModel.patients.length,
@@ -97,26 +92,26 @@ class _PatientListScreenState extends State<PatientListScreen> {
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                             leading: CircleAvatar(
-                              backgroundColor: Colors.blueAccent.withOpacity(0.1),
-                              child: const Icon(Icons.person, color: Colors.blueAccent),
+                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              child: Icon(Icons.person, color: Theme.of(context).colorScheme.primary),
                             ),
                             title: Text(
                               patient.name,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('생년월일: ${patient.dateOfBirth}'),
-                                Text('성별: ${patient.gender}'),
-                                if (patient.phoneNumber != null && patient.phoneNumber!.isNotEmpty)
-                                  Text('연락처: ${patient.phoneNumber}'),
-                                if (patient.address != null && patient.address!.isNotEmpty)
-                                  Text('주소: ${patient.address}'),
+                                const SizedBox(height: 4),
+                                Text('생년월일: ${patient.dateOfBirth}', style: textTheme.bodySmall),
+                                Text('성별: ${patient.gender}', style: textTheme.bodySmall),
+                                if (patient.phoneNumber?.isNotEmpty ?? false)
+                                  Text('연락처: ${patient.phoneNumber}', style: textTheme.bodySmall),
+                                if (patient.address?.isNotEmpty ?? false)
+                                  Text('주소: ${patient.address}', style: textTheme.bodySmall),
                               ],
                             ),
                             onTap: () {
-                              // ✅ PatientDetailScreen으로 이동하며 patientId 전달 (null 체크 추가)
                               if (patient.id != null) {
                                 context.go('/patient_detail/${patient.id}');
                               } else {
@@ -147,15 +142,15 @@ class _PatientListScreenState extends State<PatientListScreen> {
     final _genderController = TextEditingController();
     final _phoneController = TextEditingController();
     final _addressController = TextEditingController();
+    final textTheme = Theme.of(context).textTheme;
 
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('새 환자 추가'),
+          title: Text('새 환자 추가', style: textTheme.titleLarge),
           content: SingleChildScrollView(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: _nameController,
@@ -205,7 +200,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
                 if (success) {
                   _showSnack('환자가 성공적으로 추가되었습니다!');
-                  _loadPatients(); // 환자 추가 후 목록 새로고침
+                  _loadPatients();
                 } else {
                   _showSnack('환자 추가 실패: ${patientViewModel.errorMessage}');
                 }
