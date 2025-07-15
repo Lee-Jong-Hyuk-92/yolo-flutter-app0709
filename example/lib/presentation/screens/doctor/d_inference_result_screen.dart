@@ -29,9 +29,7 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
     final viewModel = context.watch<ConsultationRecordViewModel>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('진단 결과 목록'),
-      ),
+      appBar: AppBar(title: const Text('진단 결과 목록')),
       body: viewModel.isLoading
           ? const Center(child: CircularProgressIndicator())
           : viewModel.error != null
@@ -41,9 +39,7 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
   }
 
   Widget _buildListView(List<ConsultationRecord> records) {
-    final List<ConsultationRecord> sortedRecords = List.from(records)
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp)); // 최신순
-
+    final sortedRecords = List.from(records)..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     final imageBaseUrl = widget.baseUrl.replaceAll('/api', '');
 
     return ListView.builder(
@@ -51,33 +47,18 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
       itemCount: sortedRecords.length,
       itemBuilder: (context, index) {
         final record = sortedRecords[index];
-        final listIndex = sortedRecords.length - index; // 최신이 [n], 오래된게 [1]
+        final listIndex = sortedRecords.length - index;
 
-        String? formattedTime;
+        String formattedTime = '시간 정보 없음';
         try {
-          final imagePath = record.originalImagePath;
-          final filename = imagePath.split('/').last;
-          final parts = filename.split('_');
-
-          print('🧪 filename: $filename');
-          print('🧪 split("_") 결과: $parts');
-
+          final parts = record.originalImagePath.split('/').last.split('_');
           if (parts.length >= 2) {
-            final timePart = parts[1];
-            final y = timePart.substring(0, 4);
-            final m = timePart.substring(4, 6);
-            final d = timePart.substring(6, 8);
-            final h = timePart.substring(8, 10);
-            final min = timePart.substring(10, 12);
-
-            final dateString = '$y-$m-$d $h:$min:00'.replaceAll(' ', 'T');
-            final parsed = DateTime.parse(dateString);
-            formattedTime = DateFormat('yyyy-MM-dd HH:mm').format(parsed);
-          } else {
-            formattedTime = '시간 정보 없음';
+            final t = parts[1];
+            formattedTime = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.parse(
+              '${t.substring(0, 4)}-${t.substring(4, 6)}-${t.substring(6, 8)} ${t.substring(8, 10)}:${t.substring(10, 12)}:00',
+            ));
           }
         } catch (e) {
-          print('❌ 시간 파싱 오류: $e');
           formattedTime = '시간 파싱 오류';
         }
 
@@ -101,7 +82,16 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
                 MaterialPageRoute(
                   builder: (_) => ResultDetailScreen(
                     originalImageUrl: '$imageBaseUrl${record.originalImagePath}',
-                    processedImageUrl: '$imageBaseUrl${record.processedImagePath}',
+                    processedImageUrls: {
+                      1: '$imageBaseUrl${record.processedImagePath}',
+                    },
+                    modelInfos: {
+                      1: {
+                        'model_used': 'YOLOv11',
+                        'confidence': record.confidence ?? 0.0,
+                        'lesion_points': record.lesionPoints ?? [],
+                      },
+                    },
                   ),
                 ),
               );

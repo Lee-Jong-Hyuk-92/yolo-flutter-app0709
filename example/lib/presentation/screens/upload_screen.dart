@@ -10,7 +10,8 @@ import 'package:path/path.dart' as path;
 import 'package:http_parser/http_parser.dart';
 import 'package:provider/provider.dart';
 
-import '/presentation/viewmodel/auth_viewmodel.dart'; // ✅ 추가
+import '/presentation/viewmodel/auth_viewmodel.dart';
+import 'doctor/d_result_detail_screen.dart'; // ✅ 결과 화면 import
 
 class UploadScreen extends StatefulWidget {
   final String baseUrl; // ex: http://192.168.0.19:5000/api
@@ -24,7 +25,6 @@ class UploadScreen extends StatefulWidget {
 class _UploadScreenState extends State<UploadScreen> {
   File? _imageFile;
   Uint8List? _webImage;
-  String? _resultImageUrl;
   bool _isLoading = false;
 
   Future<void> _pickImage() async {
@@ -33,19 +33,18 @@ class _UploadScreenState extends State<UploadScreen> {
     if (picked == null) return;
 
     setState(() {
-      _resultImageUrl = null;
+      _webImage = null;
+      _imageFile = null;
     });
 
     if (kIsWeb) {
       final bytes = await picked.readAsBytes();
       setState(() {
         _webImage = bytes;
-        _imageFile = null;
       });
     } else {
       setState(() {
         _imageFile = File(picked.path);
-        _webImage = null;
       });
     }
   }
@@ -70,8 +69,7 @@ class _UploadScreenState extends State<UploadScreen> {
     try {
       final uri = Uri.parse('${widget.baseUrl}/upload');
       final request = http.MultipartRequest('POST', uri);
-
-      request.fields['user_id'] = registerId; // ✅ 사용자 ID 전달
+      request.fields['user_id'] = registerId;
 
       if (_imageFile != null) {
         request.files.add(await http.MultipartFile.fromPath(
@@ -91,16 +89,36 @@ class _UploadScreenState extends State<UploadScreen> {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      if (response.statusCode == 200) { 
+      if (response.statusCode == 200) {
         final responseData = json.decode(responseBody);
         final processedPath = responseData['image_url'] as String?;
-        if (processedPath != null) {
+        final inferenceData = responseData['inference_data'] as Map<String, dynamic>?;
+
+        if (processedPath != null && inferenceData != null) {
           final baseStaticUrl = widget.baseUrl.replaceFirst('/api', '');
-          setState(() {
-            _resultImageUrl = '$baseStaticUrl$processedPath';
-          });
+
+          final originalImageUrl = _imageFile != null
+              ? _imageFile!.path
+              : '$baseStaticUrl${responseData['original_image_path']}';
+
+          final processedImageUrl = '$baseStaticUrl$processedPath';
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ResultDetailScreen(
+                originalImageUrl: originalImageUrl,
+                processedImageUrls: {
+                  1: processedImageUrl, // 현재는 1번 모델만 있음
+                },
+                modelInfos: {
+                  1: inferenceData,
+                },
+              ),
+            ),
+          );
         } else {
-          throw Exception('image_url 없음');
+          throw Exception('image_url 또는 inference_data 없음');
         }
       } else {
         print('서버 오류: ${response.statusCode}');
@@ -158,15 +176,6 @@ class _UploadScreenState extends State<UploadScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            if (_resultImageUrl != null)
-              Column(
-                children: [
-                  const Text('📌 예측 결과'),
-                  const SizedBox(height: 10),
-                  Image.network(_resultImageUrl!),
-                ],
-              ),
           ],
         ),
       ),

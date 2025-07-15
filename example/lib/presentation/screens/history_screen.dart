@@ -22,7 +22,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     super.initState();
     final viewModel = context.read<ConsultationRecordViewModel>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      viewModel.fetchRecords(); // MongoDB에서 진단 기록 로딩
+      viewModel.fetchRecords();
     });
   }
 
@@ -32,14 +32,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final authViewModel = context.watch<AuthViewModel>();
     final currentUser = authViewModel.currentUser;
 
-    print('🟨 현재 로그인 ID: ${currentUser?.registerId}');
-    print('🟨 전체 기록 수: ${viewModel.records.length}');
-    print('🟨 필터링된 기록 수: ${viewModel.records.where((r) => r.userId == currentUser?.registerId).length}');
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('이전 진단 기록'),
-      ),
+      appBar: AppBar(title: const Text('이전 진단 기록')),
       body: viewModel.isLoading
           ? const Center(child: CircularProgressIndicator())
           : viewModel.error != null
@@ -47,9 +41,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               : currentUser == null
                   ? const Center(child: Text('로그인이 필요합니다.'))
                   : _buildListView(
-                      viewModel.records
-                          .where((r) => r.userId == currentUser.registerId)
-                          .toList(),
+                      viewModel.records.where((r) => r.userId == currentUser.registerId).toList(),
                     ),
     );
   }
@@ -61,7 +53,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ..sort((a, b) {
         final atime = _extractDateTimeFromFilename(a.originalImagePath);
         final btime = _extractDateTimeFromFilename(b.originalImagePath);
-        return btime.compareTo(atime); // 최신순 정렬
+        return btime.compareTo(atime);
       });
 
     return ListView.builder(
@@ -76,7 +68,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
           final time = _extractDateTimeFromFilename(record.originalImagePath);
           formattedTime = DateFormat('yyyy-MM-dd HH:mm').format(time);
         } catch (e) {
-          print('❌ 시간 파싱 오류: $e');
           formattedTime = '시간 파싱 오류';
         }
 
@@ -100,7 +91,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 MaterialPageRoute(
                   builder: (_) => ResultDetailScreen(
                     originalImageUrl: '$imageBaseUrl${record.originalImagePath}',
-                    processedImageUrl: '$imageBaseUrl${record.processedImagePath}',
+                    processedImageUrls: {
+                      1: '$imageBaseUrl${record.processedImagePath}',
+                    },
+                    modelInfos: {
+                      1: {
+                        'model_used': 'YOLOv11',
+                        'confidence': record.confidence ?? 0.0,
+                        'lesion_points': record.lesionPoints ?? [],
+                      },
+                    },
                   ),
                 ),
               );
@@ -115,16 +115,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final filename = imagePath.split('/').last;
     final parts = filename.split('_');
     if (parts.length < 2) throw FormatException('잘못된 파일명 형식: $filename');
-
-    final timePart = parts[1]; // ex: 20250714140818280896
+    final timePart = parts[1];
     final y = timePart.substring(0, 4);
     final m = timePart.substring(4, 6);
     final d = timePart.substring(6, 8);
     final h = timePart.substring(8, 10);
     final min = timePart.substring(10, 12);
     final sec = timePart.substring(12, 14);
-
-    final dateString = '$y-$m-$d $h:$min:$sec'.replaceAll(' ', 'T');
-    return DateTime.parse(dateString);
+    return DateTime.parse('$y-$m-$d' 'T' '$h:$min:$sec');
   }
 }
