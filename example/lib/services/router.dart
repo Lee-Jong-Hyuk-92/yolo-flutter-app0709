@@ -5,6 +5,7 @@ import 'package:provider/provider.dart'; // Provider is used for ChangeNotifierP
 // 필요한 화면들 임포트
 import '/presentation/screens/doctor/d_inference_result_screen.dart';
 import '/presentation/screens/doctor/d_real_home_screen.dart'; // 의사 첫 홈 (DoctorDrawer 포함)
+import '/presentation/screens/doctor/d_telemedicine_application_screen.dart'; // ✅ 새로 추가된 비대면 진료 신청 화면
 import '/presentation/screens/main_scaffold.dart'; // 일반 사용자용 스캐폴드
 import '/presentation/screens/login_screen.dart';
 import '/presentation/screens/register_screen.dart';
@@ -42,9 +43,6 @@ GoRouter createRouter(String baseUrl) {
       // ✅ 의사 전용 ShellRoute 추가: 이 ShellRoute 내의 모든 화면은 Drawer를 유지합니다.
       ShellRoute(
         builder: (context, state, child) {
-          // 이 ShellRoute는 의사 관련 모든 화면에 공통적으로 Drawer를 제공합니다.
-          // 각 자식 화면은 자체적으로 Scaffold를 가질 수 있으며,
-          // 그 Scaffold의 drawer 속성에 DoctorDrawer를 할당합니다.
           return child; // 자식 위젯을 그대로 반환
         },
         routes: [
@@ -61,20 +59,12 @@ GoRouter createRouter(String baseUrl) {
             },
           ),
 
-          // ✅ 의사 메뉴: 비대면 진료 신청 화면 (기존 /d_dashboard)
+          // ✅ 의사 메뉴: 비대면 진료 신청 화면 (이제 별도 파일로 분리)
           GoRoute(
             path: '/d_dashboard',
             builder: (context, state) {
               final passedBaseUrl = state.extra as String? ?? baseUrl;
-              // DInferenceResultScreen에 Drawer를 추가해야 합니다.
-              // 현재 DInferenceResultScreen의 코드를 알 수 없으므로,
-              // 임시로 Scaffold로 감싸고 DoctorDrawer를 추가합니다.
-              // 실제 DInferenceResultScreen 파일에서 Scaffold와 Drawer를 구현해야 합니다.
-              return Scaffold(
-                appBar: AppBar(title: const Text('비대면 진료 신청')),
-                drawer: DoctorDrawer(baseUrl: passedBaseUrl), // DoctorDrawer 적용
-                body: DInferenceResultScreen(baseUrl: passedBaseUrl),
-              );
+              return DTelemedicineApplicationScreen(baseUrl: passedBaseUrl); // ✅ 새로운 화면 위젯 사용
             },
           ),
 
