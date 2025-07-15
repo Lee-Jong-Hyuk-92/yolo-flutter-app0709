@@ -87,11 +87,14 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
                     },
                     modelInfos: {
                       1: {
-                        'model_used': record.modelUsed, // ✅ DB에서 불러온 값 사용
+                        'model_used': record.modelUsed,
                         'confidence': record.confidence ?? 0.0,
                         'lesion_points': record.lesionPoints ?? [],
                       },
                     },
+                    userId: record.userId,                    // ✅ 전달
+                    inferenceResultId: record.inferenceId,     // ✅ 전달
+                    baseUrl: widget.baseUrl,                   // ✅ 전달
                   ),
                 ),
               );

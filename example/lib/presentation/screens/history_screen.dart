@@ -101,6 +101,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         'lesion_points': record.lesionPoints ?? [],
                       },
                     },
+                    userId: record.userId, // ✅ 추가
+                    inferenceResultId: record.id,
+                    baseUrl: widget.baseUrl, // ✅ 여기를 수정
                   ),
                 ),
               );

@@ -91,6 +91,8 @@ class _UploadScreenState extends State<UploadScreen> {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(responseBody);
+        final userId = registerId;
+        final inferenceResultId = responseData['inference_result_id'] as String? ?? 'UNKNOWN';
         final processedPath = responseData['image_url'] as String?;
         final inferenceData = responseData['inference_data'] as Map<String, dynamic>?;
         final originalPath = responseData['original_image_path'] as String?;
@@ -112,6 +114,9 @@ class _UploadScreenState extends State<UploadScreen> {
                 modelInfos: {
                   1: inferenceData,
                 },
+                userId: userId,                        // ✅ registerId
+                inferenceResultId: inferenceResultId, // ✅ from response
+                baseUrl: widget.baseUrl,              // ✅ 전달
               ),
             ),
           );

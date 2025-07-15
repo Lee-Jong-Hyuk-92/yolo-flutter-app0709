@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ResultDetailScreen extends StatefulWidget {
   final String originalImageUrl;
   final Map<int, String> processedImageUrls;
   final Map<int, Map<String, dynamic>> modelInfos;
 
+  final String userId;             // ✅ 추가
+  final String inferenceResultId; // ✅ 추가
+  final String baseUrl;           // ✅ 추가
+
   const ResultDetailScreen({
     super.key,
     required this.originalImageUrl,
     required this.processedImageUrls,
     required this.modelInfos,
+    required this.userId,
+    required this.inferenceResultId,
+    required this.baseUrl,
   });
 
   @override
@@ -17,12 +26,70 @@ class ResultDetailScreen extends StatefulWidget {
 }
 
 class _ResultDetailScreenState extends State<ResultDetailScreen> {
-  int? _selectedModelIndex = 1; // 기본 1번 모델 선택
+  int? _selectedModelIndex = 1;
 
   void _toggleModel(int index) {
     setState(() {
       _selectedModelIndex = (_selectedModelIndex == index) ? null : index;
     });
+  }
+
+  Future<void> _showAddressDialogAndApply() async {
+    final TextEditingController controller = TextEditingController();
+    final String apiUrl = "${widget.baseUrl}/apply";
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("주소 입력"),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: "상세 주소를 입력하세요"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("취소"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, controller.text.trim());
+              },
+              child: const Text("확인"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && result.isNotEmpty) {
+      try {
+        final response = await http.post(
+          Uri.parse(apiUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            "user_id": widget.userId,
+            "location": result,
+            "inference_result_id": widget.inferenceResultId,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ 신청이 완료되었습니다.')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('❌ 신청 실패: ${jsonDecode(response.body)['error'] ?? '알 수 없는 오류'}')),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ 서버 오류: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -39,7 +106,7 @@ class _ResultDetailScreenState extends State<ResultDetailScreen> {
 
     final double? confidence = modelInfo?['confidence'];
     final String? modelName = modelInfo?['model_used'];
-    final String className = "Dental Plaque"; // ✅ 추후 모델별 클래스로 변경 가능
+    final String className = "Dental Plaque";
 
     return Scaffold(
       appBar: AppBar(title: const Text('결과 이미지 상세 보기')),
@@ -77,11 +144,7 @@ class _ResultDetailScreenState extends State<ResultDetailScreen> {
 
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('✅ 신청이 완료되었습니다.')),
-                );
-              },
+              onPressed: _showAddressDialogAndApply,
               icon: const Icon(Icons.send),
               label: const Text('신청하기'),
               style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
