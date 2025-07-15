@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:provider/provider.dart';
+import '/presentation/viewmodel/auth_viewmodel.dart';
 
 class ResultDetailScreen extends StatefulWidget {
   final String originalImageUrl;
   final Map<int, String> processedImageUrls;
   final Map<int, Map<String, dynamic>> modelInfos;
 
-  final String userId;             // ✅ 추가
-  final String inferenceResultId; // ✅ 추가
-  final String baseUrl;           // ✅ 추가
+  final String userId;
+  final String inferenceResultId;
+  final String baseUrl;
 
   const ResultDetailScreen({
     super.key,
@@ -95,6 +97,7 @@ class _ResultDetailScreenState extends State<ResultDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final double imageHeight = MediaQuery.of(context).size.height * 0.3;
+    final currentUser = Provider.of<AuthViewModel>(context, listen: false).currentUser;
 
     final String imageUrl = (_selectedModelIndex != null)
         ? widget.processedImageUrls[_selectedModelIndex!] ?? widget.originalImageUrl
@@ -143,12 +146,15 @@ class _ResultDetailScreenState extends State<ResultDetailScreen> {
             ],
 
             const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _showAddressDialogAndApply,
-              icon: const Icon(Icons.send),
-              label: const Text('신청하기'),
-              style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
-            ),
+
+            // ✅ 환자(P)일 경우에만 신청 버튼 노출
+            if (currentUser?.role == 'P')
+              ElevatedButton.icon(
+                onPressed: _showAddressDialogAndApply,
+                icon: const Icon(Icons.send),
+                label: const Text('신청하기'),
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
+              ),
           ],
         ),
       ),

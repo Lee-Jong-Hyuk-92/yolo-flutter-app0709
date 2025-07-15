@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // TextInputFormatter를 위해 추가
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '/presentation/viewmodel/auth_viewmodel.dart';
@@ -20,7 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _registerIdController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
-  String _selectedRole = 'P'; // 기본값은 환자
+  String _selectedRole = 'P';
 
   bool _isDuplicate = true;
   bool _isIdChecked = false;
@@ -49,7 +49,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // ✅ role을 함께 전달하여 중복 확인
     final exists = await viewModel.checkUserIdDuplicate(id, _selectedRole);
     setState(() {
       _isIdChecked = true;
@@ -81,7 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       'gender': _selectedGender,
       'birth': _birthController.text.trim(),
       'phone': _phoneController.text.trim(),
-      'username': _registerIdController.text.trim(), // ✅ 백엔드에서 'username'으로 받으므로 유지
+      'username': _registerIdController.text.trim(),
       'password': _passwordController.text.trim(),
       'role': _selectedRole,
     };
@@ -104,10 +103,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authViewModel = Provider.of<AuthViewModel>(context);
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('회원가입'),
+        title: Text('회원가입', style: textTheme.headlineLarge),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/login'),
@@ -117,11 +117,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             onSelected: (value) {
               setState(() {
                 _selectedRole = value;
-                // ✅ 역할 변경 시 아이디 중복 확인 상태 초기화 및 아이디 필드 비우기
                 _isIdChecked = false;
                 _isDuplicate = true;
-                _registerIdController.clear(); // 아이디 입력 필드 초기화
-                authViewModel.clearDuplicateCheckErrorMessage(); // AuthViewModel에 이 메서드가 있다고 가정
+                _registerIdController.clear();
+                authViewModel.clearDuplicateCheckErrorMessage();
               });
             },
             itemBuilder: (context) => [
@@ -141,19 +140,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: ListView(
             children: [
               _buildTextField(_nameController, '이름 (한글만)', keyboardType: TextInputType.name),
-              _buildGenderSelector(),
-              // ✅ 생년월일 형식 자동 변환 추가
-              _buildTextField(_birthController, '생년월일 (YYYY-MM-DD)', keyboardType: TextInputType.datetime, inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9-]')),
-                LengthLimitingTextInputFormatter(10),
-                _DateFormatter(),
-              ]),
-              // ✅ 전화번호 형식 자동 변환 추가
-              _buildTextField(_phoneController, '전화번호', keyboardType: TextInputType.phone, inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(11),
-                _PhoneNumberFormatter(),
-              ]),
+              _buildGenderSelector(textTheme),
+              _buildTextField(
+                _birthController,
+                '생년월일 (YYYY-MM-DD)',
+                keyboardType: TextInputType.datetime,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9-]')),
+                  LengthLimitingTextInputFormatter(10),
+                  _DateFormatter(),
+                ],
+              ),
+              _buildTextField(
+                _phoneController,
+                '전화번호',
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                  _PhoneNumberFormatter(),
+                ],
+              ),
               Row(
                 children: [
                   Expanded(
@@ -165,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         setState(() {
                           _isIdChecked = false;
                           _isDuplicate = true;
-                          authViewModel.clearDuplicateCheckErrorMessage(); // 에러 메시지 초기화
+                          authViewModel.clearDuplicateCheckErrorMessage();
                         });
                       },
                       errorText: authViewModel.duplicateCheckErrorMessage,
@@ -187,7 +194,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _buildTextField(_passwordController, '비밀번호 (6자 이상)', isPassword: true, minLength: 6),
               _buildTextField(_confirmController, '비밀번호 확인', isPassword: true),
               const SizedBox(height: 20),
-              ElevatedButton(onPressed: _submit, child: const Text('회원가입 완료')),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submit,
+                  child: const Text('회원가입 완료'),
+                ),
+              ),
             ],
           ),
         ),
@@ -203,7 +216,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     TextInputType? keyboardType,
     ValueChanged<String>? onChanged,
     String? errorText,
-    List<TextInputFormatter>? inputFormatters, // ✅ inputFormatters 파라미터 추가
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -212,10 +225,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         obscureText: isPassword,
         keyboardType: keyboardType,
         onChanged: onChanged,
-        inputFormatters: inputFormatters, // ✅ inputFormatters 적용
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
           errorText: errorText,
         ),
         validator: (value) {
@@ -232,16 +244,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildGenderSelector() {
+  Widget _buildGenderSelector(TextTheme textTheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          const Text('성별', style: TextStyle(fontSize: 16)),
+          Text('성별', style: textTheme.bodyMedium),
           const SizedBox(width: 16),
           Expanded(
             child: RadioListTile<String>(
-              title: const Text('남'),
+              title: Text('남', style: textTheme.labelLarge),
               value: 'M',
               groupValue: _selectedGender,
               onChanged: (value) => setState(() => _selectedGender = value!),
@@ -249,7 +261,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           Expanded(
             child: RadioListTile<String>(
-              title: const Text('여'),
+              title: Text('여', style: textTheme.labelLarge),
               value: 'F',
               groupValue: _selectedGender,
               onChanged: (value) => setState(() => _selectedGender = value!),
@@ -261,21 +273,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-// ✅ 생년월일 형식 자동 변환 (YYYY-MM-DD)
+// 생년월일 자동 포맷
 class _DateFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     final text = newValue.text.replaceAll('-', '');
-    if (text.length > 8) {
-      return oldValue;
-    }
+    if (text.length > 8) return oldValue;
     final buffer = StringBuffer();
     for (int i = 0; i < text.length; i++) {
       buffer.write(text[i]);
-      if (i == 3 || i == 5) {
-        buffer.write('-');
-      }
+      if (i == 3 || i == 5) buffer.write('-');
     }
     return newValue.copyWith(
       text: buffer.toString(),
@@ -284,22 +291,17 @@ class _DateFormatter extends TextInputFormatter {
   }
 }
 
-// ✅ 전화번호 형식 자동 변환 (010-XXXX-XXXX)
+// 전화번호 자동 포맷
 class _PhoneNumberFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     final text = newValue.text.replaceAll('-', '');
-    if (text.length > 11) {
-      return oldValue;
-    }
+    if (text.length > 11) return oldValue;
     final buffer = StringBuffer();
     for (int i = 0; i < text.length; i++) {
       buffer.write(text[i]);
       if (i == 2 || i == 6) {
-        if (text.length > i + 1) {
-          buffer.write('-');
-        }
+        if (text.length > i + 1) buffer.write('-');
       }
     }
     return newValue.copyWith(

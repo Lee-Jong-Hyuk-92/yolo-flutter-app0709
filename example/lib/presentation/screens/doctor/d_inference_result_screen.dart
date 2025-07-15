@@ -93,7 +93,7 @@ class _InferenceResultScreenState extends State<InferenceResultScreen> {
                       },
                     },
                     userId: record.userId,                    // ✅ 전달
-                    inferenceResultId: record.inferenceId,     // ✅ 전달
+                    inferenceResultId: record.id,     // ✅ 전달
                     baseUrl: widget.baseUrl,                   // ✅ 전달
                   ),
                 ),
