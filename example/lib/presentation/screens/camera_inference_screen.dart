@@ -167,137 +167,117 @@ class CameraInferenceScreenState extends State<CameraInferenceScreen> {
     });
   }
 
-/// 캡처 버튼 로직: 모델 일시 중지 후 원본 이미지 캡처 및 서버 전송
-Future<void> _captureAndSendToServer() async {
-  debugPrint('🟢 _captureAndSendToServer: Start');
-
-  try {
-    if (!_yoloController.isInitialized) {
-      throw Exception('YOLO 컨트롤러가 초기화되지 않았습니다.');
-    }
-
-    // ✅ YOLOView를 일시적으로 비활성화
-    final viewKey = _yoloViewKey.currentState;
-    viewKey?.setVisibility(false);
-
-    setState(() {
-      _isModelLoading = true;
-      _loadingMessage = '원본 이미지 캡처 중...';
-    });
-
-
-    Uint8List? imageData;
-    const maxWait = Duration(seconds: 1);
-    final start = DateTime.now();
-
-    while (imageData == null && DateTime.now().difference(start) < maxWait) {
-      imageData = await _yoloController.captureRawFrame();
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-
-
-    // ✅ 다시 YOLOView 활성화
-    viewKey?.setVisibility(true);
-
-    if (imageData == null) {
-      throw Exception('이미지 캡처에 실패했습니다.');
-    }
-
-    // ✅ Android 13+ 및 Android 15 대응 권한 요청
-    if (Platform.isAndroid) {
-      var status = await Permission.photos.request(); // Android 13+ 에서는 READ_MEDIA_IMAGES 권한에 해당
-      if (!status.isGranted) {
-        throw Exception('사진 저장 권한이 필요합니다.');
+  /// 캡처 버튼 로직: 모델 일시 중지 후 원본 이미지 캡처 및 서버 전송
+  Future<void> _captureAndSendToServer() async {
+    debugPrint('🟢 _captureAndSendToServer: Start');
+    try {
+      if (!_yoloController.isInitialized) {
+        throw Exception('YOLO 컨트롤러가 초기화되지 않았습니다.');
       }
-    }
+      // ✅ YOLOView를 일시적으로 비활성화
+      final viewKey = _yoloViewKey.currentState;
+      viewKey?.setVisibility(false);
 
-    // ✅ 갤러리에 저장
-    final galleryFilename = 'YOLO_${DateTime.now().toIso8601String().replaceAll(':', '_')}.png';
-    final result = await ImageGallerySaver.saveImage(
-      imageData,
-      name: galleryFilename.split('.').first,
-      quality: 100,
-    );
+      setState(() {
+        _isModelLoading = true;
+        _loadingMessage = '원본 이미지 캡처 중...';
+      });
+      
+      Uint8List? imageData;
+      const maxWait = Duration(seconds: 1);
+      final start = DateTime.now();
 
-    if (result['isSuccess'] == true) {
-      debugPrint('✅ 갤러리에 저장 성공: $result');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('📷 사진이 갤러리에 저장되었습니다')),
-        );
+      while (imageData == null && DateTime.now().difference(start) < maxWait) {
+        imageData = await _yoloController.captureRawFrame();
+        await Future.delayed(const Duration(milliseconds: 100));
       }
-    } else {
-      debugPrint('❌ 갤러리 저장 실패: $result');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('갤러리 저장 실패')),
-        );
+      // ✅ 다시 YOLOView 활성화
+      viewKey?.setVisibility(true);
+
+      if (imageData == null) {
+        throw Exception('이미지 캡처에 실패했습니다.');
       }
-    }
 
-    //서버 전송 활성화 시작 ---------------------------
-    final now = DateTime.now();
-    final formattedDate = "${now.year.toString().padLeft(4, '0')}"
-        "${now.month.toString().padLeft(2, '0')}"
-        "${now.day.toString().padLeft(2, '0')}"
-        "${now.hour.toString().padLeft(2, '0')}"
-        "${now.minute.toString().padLeft(2, '0')}"
-        "${now.second.toString().padLeft(2, '0')}";
+      // ✅ Android 권한 요청 (Android 13+)
+      if (Platform.isAndroid) {
+        var status = await Permission.photos.request();
+        if (!status.isGranted) {
+          throw Exception('사진 저장 권한이 필요합니다.');
+        }
+      }
 
-    final filename = "${widget.userId}_${formattedDate}.png";
-
-    final String jsonResults = jsonEncode(_serializeYOLOResults(_latestResults));
-    //final String serverUrl = '${widget.baseUrl}/upload_result_with_image';
-    final String serverUrl = '${widget.baseUrl}/upload_image';
-    //final String serverUrl = '${widget.baseUrl}/upload_masked_image';
-
-    final request = http.MultipartRequest('POST', Uri.parse(serverUrl))
-      ..fields['user_id'] = widget.userId
-      ..fields['filename'] = filename
-      ..fields['results'] = jsonResults
-      ..files.add(http.MultipartFile.fromBytes(
-        'file',
+      // ✅ 갤러리에 저장
+      final galleryFilename = 'YOLO_${DateTime.now().toIso8601String().replaceAll(':', '_')}.png';
+      final result = await ImageGallerySaver.saveImage(
         imageData,
-        filename: filename,
-      ));
-
-    final response = await request.send();
-
-    if (response.statusCode == 200) {
-      debugPrint('📤 $filename 업로드 성공!');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('📷 $filename 업로드 완료')),
-        );
-      }
-    } else {
-      final body = await response.stream.bytesToString();
-      debugPrint('❌ 업로드 실패: ${response.statusCode}, $body');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('업로드 실패: ${response.statusCode}')),
-        );
-      }
-    }
-    //서버 전송 활성화 끝 ---------------------------
-
-  } catch (e) {
-    debugPrint('❌ 오류 발생: $e');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류: ${e.toString()}')),
+        name: galleryFilename.split('.').first,
+        quality: 100,
       );
+
+      if (result['isSuccess'] == true) {
+        debugPrint('✅ 갤러리에 저장 성공: $result');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('📷 사진이 갤러리에 저장되었습니다')),
+          );
+        }
+      } else {
+        debugPrint('❌ 갤러리 저장 실패: $result');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('갤러리 저장 실패')),
+          );
+        }
+      }
+
+      // ✅ 서버 전송 시작
+      final filename = 'realtime_image.png';
+      final String jsonResults = jsonEncode(_serializeYOLOResults(_latestResults));
+      final String serverUrl = '${widget.baseUrl}/upload_image';
+
+      final request = http.MultipartRequest('POST', Uri.parse(serverUrl))
+        ..fields['user_id'] = widget.userId
+        ..fields['yolo_results_json'] = jsonResults
+        ..files.add(http.MultipartFile.fromBytes(
+          'file',
+          imageData,
+          filename: filename,
+        ));
+
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        debugPrint('📤 $filename 업로드 성공!');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('📷 $filename 업로드 완료')),
+          );
+        }
+      } else {
+        final body = await response.stream.bytesToString();
+        debugPrint('❌ 업로드 실패: ${response.statusCode}, $body');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('업로드 실패: ${response.statusCode}')),
+          );
+        }
+      }
+      
+    } catch (e) {
+      debugPrint('❌ 오류 발생: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류: ${e.toString()}')),
+        );
+      }
+    } finally {
+      debugPrint('🟢 _captureAndSendToServer: 완료');
+      setState(() {
+        _isModelLoading = false;
+        _loadingMessage = '';
+      });
     }
-  } finally {
-    debugPrint('🟢 _captureAndSendToServer: 완료');
-    setState(() {
-      _isModelLoading = false;
-      _loadingMessage = '';
-    });
   }
-}
-
-
 
   /// 새로운 캡쳐 버튼 위젯을 빌드합니다.
   Widget _buildCaptureButton() {

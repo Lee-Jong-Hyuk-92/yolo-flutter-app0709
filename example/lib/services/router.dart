@@ -12,6 +12,7 @@ import '/presentation/screens/register_screen.dart';
 import '/presentation/screens/home_screen.dart';
 import '/presentation/screens/camera_inference_screen.dart';
 import '/presentation/screens/web_placeholder_screen.dart';
+import '/presentation/viewmodel/auth_viewmodel.dart'; // ✅ 사용자 로그인 정보 접근
 
 // 하단 탭 바 화면들
 import '/presentation/screens/chatbot_screen.dart';
@@ -164,10 +165,16 @@ GoRouter createRouter(String baseUrl) {
           GoRoute(
             path: '/diagnosis/realtime',
             builder: (context, state) {
+              // ✅ 로그인된 사용자 정보 가져오기
+              final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+              final currentUser = authViewModel.currentUser;
+              final realUserId = currentUser?.registerId ?? 'guest'; // ← 여기서 선언
+              // ✅ 전달된 baseUrl만 extra로 받기
               final data = state.extra as Map<String, dynamic>? ?? {};
+              final baseUrl = data['baseUrl'] ?? '';
               return CameraInferenceScreen(
-                baseUrl: data['baseUrl'] ?? '',
-                userId: data['userId'] ?? 'guest',
+                baseUrl: baseUrl,
+                userId: realUserId, // ✅ 정상 전달
               );
             },
           ),
